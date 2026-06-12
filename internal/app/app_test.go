@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -188,6 +189,22 @@ func TestNextCycles(t *testing.T) {
 	}
 	if cfg.Active != "work" {
 		t.Fatalf("Active = %q, want work", cfg.Active)
+	}
+}
+
+func TestStatusWithoutLimitChecker(t *testing.T) {
+	a, kc := newTestApp(t)
+	loginAs(t, a, kc, "acct-a@example.com", "fake-cred-A")
+	if err := a.Save("work"); err != nil {
+		t.Fatal(err)
+	}
+	out := a.Out.(*bytes.Buffer)
+	out.Reset()
+	if err := a.Status(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "work") {
+		t.Fatalf("출력에 프로필명이 없음: %q", out.String())
 	}
 }
 

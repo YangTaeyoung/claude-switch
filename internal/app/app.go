@@ -2,6 +2,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"github.com/YangTaeyoung/claude-switch/internal/claudejson"
 	"github.com/YangTaeyoung/claude-switch/internal/config"
 	"github.com/YangTaeyoung/claude-switch/internal/keychain"
+	"github.com/YangTaeyoung/claude-switch/internal/limit"
 )
 
 const (
@@ -191,6 +193,81 @@ func (a *App) List() error {
 		fmt.Fprintf(a.Out, "%s%s\t%s\n", marker, p.Name, displayEmail(p.Email))
 	}
 	return nil
+}
+
+// LimitChecker는 limit.Check를 추상화한다. nil이면 리밋 조회를 생략한다.
+type LimitChecker func(ctx context.Context, accessToken string) limit.Result
+
+// Status는 활성 프로필과 계정별 리밋 상태를 출력한다.
+func (a *App) Status(ctx context.Context, check LimitChecker) error {
+	cfg, err := config.Load(a.ConfigPath)
+	if err != nil {
+		return err
+	}
+	if len(cfg.Profiles) == 0 {
+		fmt.Fprintln(a.Out, "등록된 프로필이 없습니다. claude /login 후 claude-switch save <name>으로 등록하세요")
+		return nil
+	}
+	fmt.Fprintf(a.Out, "활성 프로필: %s\n\n", cfg.Active)
+	for _, p := range cfg.Profiles {
+		marker := "  "
+		if p.Name == cfg.Active {
+			marker = "* "
+		}
+		line := fmt.Sprintf("%s%s\t%s", marker, p.Name, displayEmail(p.Email))
+		if check != nil {
+			line += "\t" + a.limitLine(ctx, cfg, p.Name, check)
+		}
+		fmt.Fprintln(a.Out, line)
+	}
+	return nil
+}
+
+// limitLine은 프로필 하나의 리밋 상태 문자열을 만든다. 모든 실패는 "확인 불가"로 수렴한다.
+func (a *App) limitLine(ctx context.Context, cfg *config.Config, name string, check LimitChecker) string {
+	var cred string
+	var err error
+	if name == cfg.Active {
+		cred, _, err = a.KC.GetByService(ClaudeService)
+	} else {
+		cred, err = a.KC.Get(ProfileService, name)
+	}
+	if err != nil {
+		return "리밋 확인 불가 (자격증명 없음)"
+	}
+	token, err := limit.AccessToken(cred)
+	if err != nil {
+		return "리밋 확인 불가 (" + err.Error() + ")"
+	}
+	r := check(ctx, token)
+	if r.Err != nil {
+		return "리밋 확인 불가 (" + r.Err.Error() + ")"
+	}
+	line := "리밋: " + r.Status
+	if w := formatWindow("5h", r.FiveHour); w != "" {
+		line += " | " + w
+	}
+	if w := formatWindow("7d", r.SevenDay); w != "" {
+		line += " | " + w
+	}
+	return line
+}
+
+// formatWindow는 "5h 77% (리셋 06-12 16:00)" 형태의 윈도우 요약을 만든다.
+func formatWindow(label string, w limit.Window) string {
+	if w.Utilization < 0 && w.Status == "" {
+		return ""
+	}
+	s := label
+	if w.Utilization >= 0 {
+		s += fmt.Sprintf(" %.0f%%", w.Utilization*100)
+	} else {
+		s += " " + w.Status
+	}
+	if !w.ResetsAt.IsZero() {
+		s += " (리셋 " + w.ResetsAt.Local().Format("01-02 15:04") + ")"
+	}
+	return s
 }
 
 // syncBack은 현재 키체인 자격증명을 활성 프로필 스냅샷에 반영한다 (토큰 회전 대응).
