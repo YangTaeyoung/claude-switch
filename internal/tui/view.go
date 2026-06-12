@@ -30,16 +30,29 @@ var spinFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧"
 
 const barWidth = 20
 
-// bar는 사용률(0~1)을 게이지 문자열로 렌더링한다. 범위 밖은 클램프.
-func bar(utilization float64, width int) string {
+// filledCells는 사용률(0~1)을 채워진 칸 수로 변환한다. 범위 밖은 클램프.
+func filledCells(utilization float64, width int) int {
 	if utilization < 0 {
 		utilization = 0
 	}
 	if utilization > 1 {
 		utilization = 1
 	}
-	filled := int(utilization*float64(width) + 0.5)
+	return int(utilization*float64(width) + 0.5)
+}
+
+// bar는 사용률(0~1)을 스타일 없는 게이지 문자열로 렌더링한다.
+func bar(utilization float64, width int) string {
+	filled := filledCells(utilization, width)
 	return strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
+}
+
+// gauge는 채워진 부분은 사용률 색, 빈 부분은 회색으로 스타일링한 게이지를 만든다.
+func gauge(utilization float64, width int) string {
+	filled := filledCells(utilization, width)
+	fill := lipgloss.NewStyle().Foreground(utilColor(utilization)).Render(strings.Repeat("█", filled))
+	rest := dimStyle.Render(strings.Repeat("░", width-filled))
+	return fill + rest
 }
 
 // utilColor는 사용률 구간별 게이지 색을 고른다.
@@ -107,8 +120,7 @@ func windowLine(label string, w limit.Window) string {
 	if w.Utilization < 0 {
 		return dimStyle.Render(label + "  n/a")
 	}
-	gauge := lipgloss.NewStyle().Foreground(utilColor(w.Utilization)).Render(bar(w.Utilization, barWidth))
-	line := fmt.Sprintf("%s  %s %3.0f%%", dimStyle.Render(label), gauge, w.Utilization*100)
+	line := fmt.Sprintf("%s  %s %3.0f%%", dimStyle.Render(label), gauge(w.Utilization, barWidth), w.Utilization*100)
 	if !w.ResetsAt.IsZero() {
 		line += dimStyle.Render("  resets " + w.ResetsAt.Local().Format("01-02 15:04"))
 	}
