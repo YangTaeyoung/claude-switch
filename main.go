@@ -9,11 +9,13 @@ import (
 
 	"github.com/YangTaeyoung/claude-switch/internal/app"
 	"github.com/YangTaeyoung/claude-switch/internal/limit"
+	"github.com/YangTaeyoung/claude-switch/internal/tui"
 )
 
 const usage = `claude-switch — switch between Claude Code subscription accounts
 
 Usage:
+  claude-switch                Interactive dashboard (TUI)
   claude-switch save <name>    Save the currently logged-in account as a profile
   claude-switch use <name>     Switch to a specific profile
   claude-switch next           Cycle to the next profile
@@ -34,8 +36,15 @@ func main() {
 
 func run(args []string) error {
 	if len(args) == 0 {
-		fmt.Print(usage)
-		return nil
+		if stat, err := os.Stdout.Stat(); err == nil && stat.Mode()&os.ModeCharDevice == 0 {
+			fmt.Print(usage) // 파이프 등 비TTY면 도움말 출력
+			return nil
+		}
+		a, err := app.New()
+		if err != nil {
+			return err
+		}
+		return tui.Run(a)
 	}
 
 	a, err := app.New()
