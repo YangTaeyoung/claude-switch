@@ -12,6 +12,7 @@ import (
 
 	"github.com/YangTaeyoung/claude-switch/internal/config"
 	"github.com/YangTaeyoung/claude-switch/internal/keychain"
+	"github.com/YangTaeyoung/claude-switch/internal/limit"
 )
 
 // fakeKeychain은 인메모리 키체인이다. 키는 "service\x00account".
@@ -189,6 +190,36 @@ func TestNextCycles(t *testing.T) {
 	}
 	if cfg.Active != "work" {
 		t.Fatalf("Active = %q, want work", cfg.Active)
+	}
+}
+
+func TestUsageReturnsErrForMissingCredentials(t *testing.T) {
+	a, kc := newTestApp(t)
+	loginAs(t, a, kc, "acct-a@example.com", `{"claudeAiOauth":{"accessToken":"fake-token"}}`)
+	if err := a.Save("work"); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := a.Config()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	called := ""
+	check := func(ctx context.Context, token string) limit.Result {
+		called = token
+		return limit.Result{Status: "allowed"}
+	}
+	r := a.Usage(context.Background(), cfg, "work", check)
+	if r.Err != nil || r.Status != "allowed" {
+		t.Fatalf("Usage = %+v", r)
+	}
+	if called != "fake-token" {
+		t.Fatalf("token = %q", called)
+	}
+
+	r = a.Usage(context.Background(), cfg, "ghost", check)
+	if r.Err == nil {
+		t.Fatal("없는 프로필은 Err를 기대")
 	}
 }
 

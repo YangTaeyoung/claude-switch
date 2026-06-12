@@ -198,6 +198,30 @@ func (a *App) List() error {
 // LimitChecker는 limit.Check를 추상화한다. nil이면 리밋 조회를 생략한다.
 type LimitChecker func(ctx context.Context, accessToken string) limit.Result
 
+// Config는 현재 설정 파일을 로드한다.
+func (a *App) Config() (*config.Config, error) {
+	return config.Load(a.ConfigPath)
+}
+
+// Usage는 프로필의 자격증명으로 리밋 상태를 조회한다. 실패는 Result.Err로 반환한다.
+func (a *App) Usage(ctx context.Context, cfg *config.Config, name string, check LimitChecker) limit.Result {
+	var cred string
+	var err error
+	if name == cfg.Active {
+		cred, _, err = a.KC.GetByService(ClaudeService)
+	} else {
+		cred, err = a.KC.Get(ProfileService, name)
+	}
+	if err != nil {
+		return limit.Result{Err: fmt.Errorf("no credentials: %w", err)}
+	}
+	token, err := limit.AccessToken(cred)
+	if err != nil {
+		return limit.Result{Err: err}
+	}
+	return check(ctx, token)
+}
+
 // Status는 활성 프로필과 계정별 리밋 상태를 출력한다.
 func (a *App) Status(ctx context.Context, check LimitChecker) error {
 	cfg, err := config.Load(a.ConfigPath)
@@ -225,21 +249,7 @@ func (a *App) Status(ctx context.Context, check LimitChecker) error {
 
 // limitLine은 프로필 하나의 리밋 상태 문자열을 만든다. 모든 실패는 "limit unavailable"로 수렴한다.
 func (a *App) limitLine(ctx context.Context, cfg *config.Config, name string, check LimitChecker) string {
-	var cred string
-	var err error
-	if name == cfg.Active {
-		cred, _, err = a.KC.GetByService(ClaudeService)
-	} else {
-		cred, err = a.KC.Get(ProfileService, name)
-	}
-	if err != nil {
-		return "limit unavailable (no credentials)"
-	}
-	token, err := limit.AccessToken(cred)
-	if err != nil {
-		return "limit unavailable (" + err.Error() + ")"
-	}
-	r := check(ctx, token)
+	r := a.Usage(ctx, cfg, name, check)
 	if r.Err != nil {
 		return "limit unavailable (" + r.Err.Error() + ")"
 	}
