@@ -16,6 +16,12 @@
 
 ---
 
+<div align="center">
+
+![claude-switch 인터랙티브 TUI 데모](docs/demo.gif)
+
+</div>
+
 ```console
 $ claude-switch next
 Switched to profile "personal" (personal@example.com)
@@ -30,11 +36,12 @@ Active profile: personal
 
 ## ✨ 주요 기능
 
+- **🖥️ 인터랙티브 TUI** — 인자 없이 `claude-switch`를 실행하면 풀스크린 대시보드. `↑/↓` 이동, `enter` 전환, `r` 사용량 새로고침, `d` 삭제. [Bubble Tea v2](https://github.com/charmbracelet/bubbletea) 기반.
 - **⚡ 명령 하나로 전환** — `claude-switch next` 한 번이면 다음 등록 계정으로 순환. 셸 래퍼도, 환경변수도, 재로그인도 필요 없습니다.
 - **📊 계정별 사용량 한눈에** — `status`가 Anthropic의 `anthropic-ratelimit-unified-*` 헤더에서 읽어온 **실제 5시간/7일 사용률과 리셋 시각**을 계정별로 보여줍니다. 어느 계정에 여유가 있는지 전환 *전에* 알 수 있습니다.
 - **🔐 키체인 네이티브, 평문 저장 없음** — 자격증명은 디스크에 닿지 않습니다. 프로필은 Claude Code 자체 방식과 동일하게 macOS 키체인 항목으로 저장됩니다.
 - **🔁 토큰 회전 대응** — Claude Code는 사용 중 refresh token을 회전시킵니다. claude-switch는 전환 직전 살아있는 자격증명을 활성 프로필에 *sync-back* 하므로, 지난주에 저장한 프로필도 오늘 그대로 동작합니다.
-- **🪶 의존성 제로** — 순수 Go 표준 라이브러리. 작은 바이너리 하나.
+- **🪶 최소 의존성** — Go 표준 라이브러리 + Charm 스택(Bubble Tea v2, Lip Gloss v2). 작은 바이너리 하나.
 
 ## 📦 설치
 
@@ -75,6 +82,7 @@ claude-switch next
 
 | 명령 | 동작 |
 |---|---|
+| `claude-switch` | 인터랙티브 대시보드(TUI) — 전환·삭제·실시간 사용량 |
 | `claude-switch save <name>` | 현재 로그인된 계정을 프로필로 저장 |
 | `claude-switch use <name>` | 지정 프로필로 전환 |
 | `claude-switch next` | 다음 프로필로 순환 전환 |

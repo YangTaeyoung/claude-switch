@@ -16,6 +16,12 @@
 
 ---
 
+<div align="center">
+
+![claude-switch interactive TUI demo](docs/demo.gif)
+
+</div>
+
 ```console
 $ claude-switch next
 Switched to profile "personal" (personal@example.com)
@@ -30,11 +36,12 @@ Active profile: personal
 
 ## ✨ Features
 
+- **🖥️ Interactive TUI** — run `claude-switch` with no arguments for a full-screen dashboard: move with `↑/↓`, switch with `enter`, refresh usage with `r`, delete with `d`. Built on [Bubble Tea v2](https://github.com/charmbracelet/bubbletea).
 - **⚡ One-command switching** — `claude-switch next` cycles to your next registered account. No shell wrappers, no env vars, no re-login.
 - **📊 Live usage visibility** — `status` shows each account's real 5-hour / 7-day utilization and reset times, straight from Anthropic's `anthropic-ratelimit-unified-*` headers. Know *before* you switch which account has headroom.
 - **🔐 Keychain-native, zero plaintext** — credentials never touch disk. Profiles are stored as macOS Keychain items, exactly like Claude Code stores its own.
 - **🔁 Token-rotation safe** — Claude Code rotates refresh tokens while you work. claude-switch *syncs back* the live credentials into the active profile before every switch, so a profile you saved last week still works today.
-- **🪶 Zero dependencies** — pure Go standard library. One small binary.
+- **🪶 Minimal dependencies** — Go standard library + the Charm stack (Bubble Tea v2, Lip Gloss v2). One small binary.
 
 ## 📦 Installation
 
@@ -75,6 +82,7 @@ That's it. New `claude` sessions use the next account.
 
 | Command | What it does |
 |---|---|
+| `claude-switch` | Interactive dashboard (TUI) — switch, delete, live usage |
 | `claude-switch save <name>` | Snapshot the currently logged-in account as a profile |
 | `claude-switch use <name>` | Switch to a specific profile |
 | `claude-switch next` | Cycle to the next profile |
