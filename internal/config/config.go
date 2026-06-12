@@ -45,7 +45,7 @@ func Load(path string) (*Config, error) {
 	}
 	var c Config
 	if err := json.Unmarshal(data, &c); err != nil {
-		return nil, fmt.Errorf("config 파싱 실패 (%s): %w", path, err)
+		return nil, fmt.Errorf("failed to parse config (%s): %w", path, err)
 	}
 	return &c, nil
 }
@@ -93,7 +93,7 @@ func (c *Config) Remove(name string) bool {
 // Next는 활성 프로필 다음 순서의 프로필명을 반환한다 (순환).
 func (c *Config) Next() (string, error) {
 	if len(c.Profiles) < 2 {
-		return "", errors.New("전환할 프로필이 2개 이상 필요합니다. claude-switch save <name>으로 계정을 등록하세요")
+		return "", errors.New("need at least 2 profiles to switch. Register accounts with: claude-switch save <name>")
 	}
 	for i := range c.Profiles {
 		if c.Profiles[i].Name == c.Active {

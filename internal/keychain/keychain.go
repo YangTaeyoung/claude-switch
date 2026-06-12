@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-var ErrNotFound = errors.New("키체인 항목을 찾을 수 없습니다 (keychain item not found)")
+var ErrNotFound = errors.New("keychain item not found")
 
 // Keychain은 generic password 읽기/쓰기/삭제를 추상화한다. 테스트에서는 fake로 대체한다.
 type Keychain interface {
@@ -36,7 +36,7 @@ func run(args ...string) (string, error) {
 		if strings.Contains(msg, "could not be found") {
 			return "", ErrNotFound
 		}
-		return "", fmt.Errorf("security %s 실패: %v: %s", args[0], err, msg)
+		return "", fmt.Errorf("security %s failed: %v: %s", args[0], err, msg)
 	}
 	return stdout.String(), nil
 }

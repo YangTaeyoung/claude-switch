@@ -55,7 +55,7 @@ func load(path string) (map[string]json.RawMessage, error) {
 	}
 	var doc map[string]json.RawMessage
 	if err := json.Unmarshal(data, &doc); err != nil {
-		return nil, fmt.Errorf("%s 파싱 실패: %w", path, err)
+		return nil, fmt.Errorf("failed to parse %s: %w", path, err)
 	}
 	return doc, nil
 }

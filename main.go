@@ -11,23 +11,23 @@ import (
 	"github.com/YangTaeyoung/claude-switch/internal/limit"
 )
 
-const usage = `claude-switch — Claude Code 구독 계정 전환 도구
+const usage = `claude-switch — switch between Claude Code subscription accounts
 
-사용법:
-  claude-switch save <name>    현재 로그인된 계정을 프로필로 저장
-  claude-switch use <name>     지정 프로필로 전환
-  claude-switch next           다음 프로필로 순환 전환
-  claude-switch list           프로필 목록
-  claude-switch status         활성 프로필 + 계정별 리밋 상태
-  claude-switch delete <name>  프로필 삭제
+Usage:
+  claude-switch save <name>    Save the currently logged-in account as a profile
+  claude-switch use <name>     Switch to a specific profile
+  claude-switch next           Cycle to the next profile
+  claude-switch list           List profiles (* = active)
+  claude-switch status         Per-account usage limits and reset times
+  claude-switch delete <name>  Delete a profile
 
-계정 등록 (계정마다 1회):
-  claude 실행 → /login 으로 로그인 → claude-switch save <name>
+Register each account once:
+  run claude → log in with /login → claude-switch save <name>
 `
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, "오류:", err)
+		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
 }
@@ -46,7 +46,7 @@ func run(args []string) error {
 	cmd, rest := args[0], args[1:]
 	name := func() (string, error) {
 		if len(rest) != 1 {
-			return "", fmt.Errorf("%s 명령에는 프로필 이름이 하나 필요합니다", cmd)
+			return "", fmt.Errorf("%s requires exactly one profile name", cmd)
 		}
 		return rest[0], nil
 	}
@@ -81,6 +81,6 @@ func run(args []string) error {
 		return nil
 	default:
 		fmt.Print(usage)
-		return fmt.Errorf("알 수 없는 명령: %s", cmd)
+		return fmt.Errorf("unknown command: %s", cmd)
 	}
 }

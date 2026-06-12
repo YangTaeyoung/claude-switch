@@ -63,12 +63,12 @@ func Check(ctx context.Context, accessToken string) Result {
 	}
 
 	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
-		return Result{Err: fmt.Errorf("인증 실패 (HTTP %d) — 토큰이 만료되었을 수 있습니다", resp.StatusCode)}
+		return Result{Err: fmt.Errorf("authentication failed (HTTP %d) — token may be expired", resp.StatusCode)}
 	}
 
 	r := parseHeaders(resp.Header)
 	if r.Status == "" {
-		r.Err = fmt.Errorf("리밋 헤더 없음 (HTTP %d)", resp.StatusCode)
+		r.Err = fmt.Errorf("no rate-limit headers (HTTP %d)", resp.StatusCode)
 	}
 	return r
 }
@@ -102,11 +102,11 @@ func parseWindow(h http.Header, window string) Window {
 func AccessToken(credJSON string) (string, error) {
 	var doc map[string]json.RawMessage
 	if err := json.Unmarshal([]byte(credJSON), &doc); err != nil {
-		return "", fmt.Errorf("자격증명 JSON 파싱 실패: %w", err)
+		return "", fmt.Errorf("failed to parse credentials JSON: %w", err)
 	}
 	if raw, ok := doc["claudeAiOauth"]; ok {
 		if err := json.Unmarshal(raw, &doc); err != nil {
-			return "", fmt.Errorf("claudeAiOauth 파싱 실패: %w", err)
+			return "", fmt.Errorf("failed to parse claudeAiOauth: %w", err)
 		}
 	}
 	var token string
@@ -116,7 +116,7 @@ func AccessToken(credJSON string) (string, error) {
 		}
 	}
 	if token == "" {
-		return "", fmt.Errorf("accessToken 필드를 찾을 수 없습니다")
+		return "", fmt.Errorf("accessToken field not found")
 	}
 	return token, nil
 }

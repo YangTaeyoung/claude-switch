@@ -1,59 +1,120 @@
-# claude-switch
+<div align="center">
 
-Claude Code 구독 계정을 여러 개 등록해두고 명령 하나로 전환하는 macOS 전용 CLI.
-토큰 리밋이 차면 `claude-switch next` 한 번으로 다음 계정으로 넘어간다.
+# 🔄 claude-switch
 
-> ⚠️ 이 저장소에는 어떤 시크릿·계정 정보도 커밋하지 않는다. 자격증명은 macOS 키체인에만 저장된다.
+**Hit your Claude Code usage limit? Switch to your next subscription account with one command.**
 
-## 설치
+[![CI](https://github.com/YangTaeyoung/claude-switch/actions/workflows/ci.yml/badge.svg)](https://github.com/YangTaeyoung/claude-switch/actions/workflows/ci.yml)
+[![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![Platform](https://img.shields.io/badge/platform-macOS-black?logo=apple)](https://www.apple.com/macos/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+[English](README.md) · [한국어](README.ko.md)
+
+</div>
+
+---
+
+```console
+$ claude-switch next
+Switched to profile "personal" (personal@example.com)
+Takes effect for new claude sessions. Restart any running session.
+
+$ claude-switch status
+Active profile: personal
+
+  work      work@example.com      limit: allowed | 5h 80% (resets 06-12 16:00) | 7d 12% (resets 06-19 14:00)
+* personal  personal@example.com  limit: allowed | 5h 3%  (resets 06-12 18:00) | 7d 40% (resets 06-15 09:00)
+```
+
+## ✨ Features
+
+- **⚡ One-command switching** — `claude-switch next` cycles to your next registered account. No shell wrappers, no env vars, no re-login.
+- **📊 Live usage visibility** — `status` shows each account's real 5-hour / 7-day utilization and reset times, straight from Anthropic's `anthropic-ratelimit-unified-*` headers. Know *before* you switch which account has headroom.
+- **🔐 Keychain-native, zero plaintext** — credentials never touch disk. Profiles are stored as macOS Keychain items, exactly like Claude Code stores its own.
+- **🔁 Token-rotation safe** — Claude Code rotates refresh tokens while you work. claude-switch *syncs back* the live credentials into the active profile before every switch, so a profile you saved last week still works today.
+- **🪶 Zero dependencies** — pure Go standard library. One small binary.
+
+## 📦 Installation
 
 ```shell
 go install github.com/YangTaeyoung/claude-switch@latest
-# 또는 로컬 빌드
-go build -o bin/claude-switch . && cp bin/claude-switch /usr/local/bin/
 ```
 
-## 사용법
+Or build from source:
 
 ```shell
-# 계정 등록 (계정마다 1회)
-claude            # /login 으로 A계정 로그인 후 종료
+git clone https://github.com/YangTaeyoung/claude-switch.git
+cd claude-switch && go build -o claude-switch .
+```
+
+## 🚀 Quick Start
+
+**1. Register each account once** — log in with Claude Code, then snapshot it:
+
+```shell
+claude              # /login with account A, then exit
 claude-switch save work
-claude            # /login 으로 B계정 로그인 후 종료
+
+claude              # /login with account B, then exit
 claude-switch save personal
-
-# 리밋이 차면
-claude-switch next            # 다음 계정으로 순환 전환
-claude-switch use work        # 또는 이름 지정 전환
-
-# 상태 확인
-claude-switch list            # 프로필 목록 (* = 활성)
-claude-switch status          # 계정별 리밋 사용률(5h/7d)과 리셋 시각
-claude-switch delete <name>   # 프로필 삭제 (활성 프로필은 불가)
 ```
 
-`status` 출력 예시:
+**2. When you hit the limit:**
 
-```
-활성 프로필: work
-
-* work      work@example.com      리밋: allowed | 5h 80% (리셋 06-12 16:00) | 7d 12% (리셋 06-19 14:00)
-  personal  personal@example.com  리밋: allowed | 5h 3% (리셋 06-12 18:00) | 7d 40% (리셋 06-15 09:00)
+```shell
+claude-switch next
 ```
 
-## 동작 원리
+That's it. New `claude` sessions use the next account.
 
-macOS에서 Claude Code는 OAuth 자격증명을 키체인 항목 `Claude Code-credentials`에 저장한다
-([공식 문서](https://code.claude.com/docs/en/authentication)). claude-switch는:
+### All commands
 
-1. **save**: 현재 키체인 자격증명을 프로필별 키체인 항목(`claude-switch-profile`)으로 스냅샷
-2. **use/next**: 전환 전에 현재 키체인 내용을 활성 프로필에 **sync-back**(Claude Code의 refresh token 회전 대응) → 대상 프로필의 자격증명을 `Claude Code-credentials`에 기록 → `~/.claude.json`의 `oauthAccount`도 함께 교체
-3. 프로필 순서·활성 프로필 같은 메타데이터만 `~/.config/claude-switch/config.json`에 저장 (토큰 없음)
+| Command | What it does |
+|---|---|
+| `claude-switch save <name>` | Snapshot the currently logged-in account as a profile |
+| `claude-switch use <name>` | Switch to a specific profile |
+| `claude-switch next` | Cycle to the next profile |
+| `claude-switch list` | List profiles (`*` = active) |
+| `claude-switch status` | Per-account usage (5h/7d windows) and reset times |
+| `claude-switch delete <name>` | Remove a profile (the active one is protected) |
 
-## 한계 및 주의사항
+## ⚙️ How it works
 
-- **실행 중인 claude 세션에는 적용되지 않는다.** 전환 후 새 세션부터 적용되므로 기존 세션은 재시작할 것.
-- **리밋 조회는 최소 inference 요청을 사용한다.** `status`는 프로필당 haiku 1토큰짜리 요청을 보내 `anthropic-ratelimit-unified-*` 헤더를 읽는다 (무과금 엔드포인트들은 리밋 헤더를 주지 않는 것을 실측으로 확인). 사용량에 극미량 가산된다.
-- 첫 키체인 접근 시 macOS 허용 프롬프트가 뜰 수 있다 ("항상 허용" 선택 가능).
-- `security add-generic-password -w`의 특성상 쓰기 순간 비밀값이 프로세스 인자에 잠깐 노출된다. 로컬 단일 사용자 머신 전제.
-- 디버깅: `CLAUDE_SWITCH_DEBUG=1 claude-switch status`로 리밋 응답 헤더를 확인할 수 있다.
+On macOS, Claude Code stores its OAuth credentials in the Keychain item `Claude Code-credentials` ([official docs](https://code.claude.com/docs/en/authentication)). claude-switch swaps that item per profile:
+
+```mermaid
+flowchart LR
+    subgraph Keychain["🔐 macOS Keychain"]
+        CC["Claude Code-credentials<br/>(live)"]
+        P1["profile: work"]
+        P2["profile: personal"]
+    end
+    next["claude-switch next"] -- "① sync-back<br/>(rotated tokens)" --> P2
+    CC -. "①" .-> P2
+    P1 -- "② restore" --> CC
+    next -- "③ swap oauthAccount<br/>in ~/.claude.json" --> CJ["~/.claude.json"]
+```
+
+1. **Sync-back** — the live (possibly rotated) credentials are written back into the currently active profile
+2. **Restore** — the target profile's credentials become the live `Claude Code-credentials` item
+3. **Identity swap** — `oauthAccount` in `~/.claude.json` is replaced so `/status` shows the right account
+
+Only non-secret metadata (profile names, order, emails) lives in `~/.config/claude-switch/config.json`.
+
+## ⚠️ Limitations
+
+- **macOS only.** Linux/Windows store credentials in `.credentials.json`; not supported (yet).
+- **Running sessions keep their old account** until restarted — switching applies to new `claude` sessions.
+- **`status` sends one minimal inference request per profile** (1 haiku token) — free endpoints don't return rate-limit headers (verified empirically). The cost is negligible but not zero.
+- First Keychain access may trigger a macOS permission prompt — choose "Always Allow".
+
+## 📄 License
+
+[MIT](LICENSE)
+
+---
+
+<div align="center">
+<sub>Built with Go · Not affiliated with Anthropic</sub>
+</div>
