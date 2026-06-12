@@ -36,7 +36,8 @@ Active profile: personal
 
 ## ✨ Features
 
-- **🖥️ Interactive TUI** — run `claude-switch` with no arguments for a full-screen dashboard: move with `↑/↓`, switch with `enter`, refresh usage with `r`, delete with `d`. Built on [Bubble Tea v2](https://github.com/charmbracelet/bubbletea).
+- **🖥️ Interactive TUI** — run `claude-switch` with no arguments for a full-screen home menu: manage profiles (switch / rename / delete with live usage), save the current account, and tweak settings. Built on [Bubble Tea v2](https://github.com/charmbracelet/bubbletea).
+- **🌐 English / 한국어** — switch the display language in Settings or with `claude-switch lang ko`.
 - **⚡ One-command switching** — `claude-switch next` cycles to your next registered account. No shell wrappers, no env vars, no re-login.
 - **📊 Live usage visibility** — `status` shows each account's real 5-hour / 7-day utilization and reset times, straight from Anthropic's `anthropic-ratelimit-unified-*` headers. Know *before* you switch which account has headroom.
 - **🔐 Keychain-native, zero plaintext** — credentials never touch disk. Profiles are stored as macOS Keychain items, exactly like Claude Code stores its own.
@@ -88,7 +89,10 @@ That's it. New `claude` sessions use the next account.
 | `claude-switch next` | Cycle to the next profile |
 | `claude-switch list` | List profiles (`*` = active) |
 | `claude-switch status` | Per-account usage (5h/7d windows) and reset times |
+| `claude-switch rename <old> <new>` | Rename a profile |
 | `claude-switch delete <name>` | Remove a profile (the active one is protected) |
+| `claude-switch lang <en\|ko>` | Set display language |
+| `claude-switch version` | Print version |
 
 ## ⚙️ How it works
 
