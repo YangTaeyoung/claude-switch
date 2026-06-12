@@ -55,6 +55,7 @@ var messages = map[string]map[Lang]string{
 	"profiles.resets":     {EN: "resets", KO: "리셋"},
 	"profiles.noLimit":    {EN: "limit unavailable", KO: "리밋 확인 불가"},
 	"confirm.delete":      {EN: "Delete %q? (y/n)", KO: "%q 프로필을 삭제할까요? (y/n)"},
+	"status.saved":        {EN: "✓ Saved %s", KO: "✓ %s 프로필을 저장했습니다"},
 	"status.switched":     {EN: "✓ Switched to %s", KO: "✓ %s 프로필로 전환했습니다"},
 	"status.deleted":      {EN: "✓ Deleted %s", KO: "✓ %s 프로필을 삭제했습니다"},
 	"status.renamed":      {EN: "✓ Renamed %s → %s", KO: "✓ 이름 변경: %s → %s"},
