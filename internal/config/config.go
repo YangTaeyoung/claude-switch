@@ -22,6 +22,8 @@ type Profile struct {
 type Config struct {
 	// Active는 현재 키체인에 들어 있는 프로필명.
 	Active string `json:"active,omitempty"`
+	// Language는 표시 언어 ("en"/"ko"). 빈 값은 en.
+	Language string `json:"language,omitempty"`
 	// ClaudeKeychainAcct는 Claude Code 키체인 항목의 account 속성(보통 macOS 사용자명).
 	ClaudeKeychainAcct string    `json:"claudeKeychainAccount,omitempty"`
 	Profiles           []Profile `json:"profiles"`

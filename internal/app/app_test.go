@@ -223,6 +223,55 @@ func TestUsageReturnsErrForMissingCredentials(t *testing.T) {
 	}
 }
 
+func TestRename(t *testing.T) {
+	t.Run("키체인 항목 이동 + Active 갱신", func(t *testing.T) {
+		a, kc := newTestApp(t)
+		loginAs(t, a, kc, "acct-a@example.com", "fake-cred-A")
+		if err := a.Save("work"); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := a.Rename("work", "company"); err != nil {
+			t.Fatal(err)
+		}
+
+		if _, err := kc.Get(ProfileService, "work"); err == nil {
+			t.Fatal("구 키체인 항목이 남아 있음")
+		}
+		cred, err := kc.Get(ProfileService, "company")
+		if err != nil || cred != "fake-cred-A" {
+			t.Fatalf("새 항목 = %q, %v", cred, err)
+		}
+		cfg, err := a.Config()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.Active != "company" || cfg.Find("company") == nil || cfg.Find("work") != nil {
+			t.Fatalf("config 갱신 실패: %+v", cfg)
+		}
+	})
+	t.Run("미존재 프로필", func(t *testing.T) {
+		a, _ := newTestApp(t)
+		if err := a.Rename("ghost", "x"); err == nil {
+			t.Fatal("에러를 기대")
+		}
+	})
+	t.Run("중복 이름", func(t *testing.T) {
+		a, kc := newTestApp(t)
+		loginAs(t, a, kc, "acct-a@example.com", "fake-cred-A")
+		if err := a.Save("work"); err != nil {
+			t.Fatal(err)
+		}
+		loginAs(t, a, kc, "acct-b@example.com", "fake-cred-B")
+		if err := a.Save("personal"); err != nil {
+			t.Fatal(err)
+		}
+		if err := a.Rename("work", "personal"); err == nil {
+			t.Fatal("중복 이름은 에러를 기대")
+		}
+	})
+}
+
 func TestStatusWithoutLimitChecker(t *testing.T) {
 	a, kc := newTestApp(t)
 	loginAs(t, a, kc, "acct-a@example.com", "fake-cred-A")

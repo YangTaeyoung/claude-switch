@@ -12,6 +12,7 @@ import (
 
 	"github.com/YangTaeyoung/claude-switch/internal/claudejson"
 	"github.com/YangTaeyoung/claude-switch/internal/config"
+	"github.com/YangTaeyoung/claude-switch/internal/i18n"
 	"github.com/YangTaeyoung/claude-switch/internal/keychain"
 	"github.com/YangTaeyoung/claude-switch/internal/limit"
 )
@@ -85,7 +86,7 @@ func (a *App) Save(name string) error {
 	if err := cfg.Save(a.ConfigPath); err != nil {
 		return err
 	}
-	fmt.Fprintf(a.Out, "Saved profile %q (active: %s)\n", name, displayEmail(p.Email))
+	fmt.Fprintf(a.Out, i18n.T("cli.saved"), name, displayEmail(p.Email))
 	return nil
 }
 
@@ -103,7 +104,7 @@ func (a *App) Use(name string) error {
 	a.syncBack(cfg)
 
 	if name == cfg.Active {
-		fmt.Fprintf(a.Out, "Profile %q is already active\n", name)
+		fmt.Fprintf(a.Out, i18n.T("cli.alreadyActive"), name)
 		return nil
 	}
 
@@ -134,8 +135,49 @@ func (a *App) Use(name string) error {
 	if err := cfg.Save(a.ConfigPath); err != nil {
 		return err
 	}
-	fmt.Fprintf(a.Out, "Switched to profile %q (%s)\n", name, displayEmail(p.Email))
-	fmt.Fprintln(a.Out, "Takes effect for new claude sessions. Restart any running session.")
+	fmt.Fprintf(a.Out, i18n.T("cli.switched"), name, displayEmail(p.Email))
+	fmt.Fprintln(a.Out, i18n.T("cli.takesEffect"))
+	return nil
+}
+
+// Rename은 프로필 이름을 바꾼다. 키체인 항목도 새 이름으로 옮긴다.
+func (a *App) Rename(oldName, newName string) error {
+	cfg, err := a.Config()
+	if err != nil {
+		return err
+	}
+	if cfg.Find(oldName) == nil {
+		return fmt.Errorf("profile %q not found", oldName)
+	}
+	if newName == "" {
+		return errors.New("new name cannot be empty")
+	}
+	if newName == oldName {
+		return nil
+	}
+	if cfg.Find(newName) != nil {
+		return fmt.Errorf("profile %q already exists", newName)
+	}
+
+	cred, err := a.KC.Get(ProfileService, oldName)
+	if err != nil {
+		return fmt.Errorf("failed to read credentials for profile %q: %w", oldName, err)
+	}
+	if err := a.KC.Set(ProfileService, newName, cred); err != nil {
+		return err
+	}
+	if err := a.KC.Delete(ProfileService, oldName); err != nil && !errors.Is(err, keychain.ErrNotFound) {
+		return err
+	}
+
+	cfg.Find(oldName).Name = newName
+	if cfg.Active == oldName {
+		cfg.Active = newName
+	}
+	if err := cfg.Save(a.ConfigPath); err != nil {
+		return err
+	}
+	fmt.Fprintf(a.Out, i18n.T("cli.renamed"), oldName, newName)
 	return nil
 }
 
@@ -171,7 +213,7 @@ func (a *App) Delete(name string) error {
 	if err := cfg.Save(a.ConfigPath); err != nil {
 		return err
 	}
-	fmt.Fprintf(a.Out, "Deleted profile %q\n", name)
+	fmt.Fprintf(a.Out, i18n.T("cli.deleted"), name)
 	return nil
 }
 
@@ -182,7 +224,7 @@ func (a *App) List() error {
 		return err
 	}
 	if len(cfg.Profiles) == 0 {
-		fmt.Fprintln(a.Out, "No profiles registered. Log in with claude /login, then run: claude-switch save <name>")
+		fmt.Fprintln(a.Out, i18n.T("cli.noProfiles"))
 		return nil
 	}
 	for _, p := range cfg.Profiles {
@@ -229,10 +271,10 @@ func (a *App) Status(ctx context.Context, check LimitChecker) error {
 		return err
 	}
 	if len(cfg.Profiles) == 0 {
-		fmt.Fprintln(a.Out, "No profiles registered. Log in with claude /login, then run: claude-switch save <name>")
+		fmt.Fprintln(a.Out, i18n.T("cli.noProfiles"))
 		return nil
 	}
-	fmt.Fprintf(a.Out, "Active profile: %s\n\n", cfg.Active)
+	fmt.Fprintf(a.Out, i18n.T("cli.activeProfile"), cfg.Active)
 	for _, p := range cfg.Profiles {
 		marker := "  "
 		if p.Name == cfg.Active {
@@ -297,7 +339,7 @@ func (a *App) syncBack(cfg *config.Config) {
 
 func displayEmail(email string) string {
 	if email == "" {
-		return "unknown email"
+		return i18n.T("cli.unknownEmail")
 	}
 	return email
 }
