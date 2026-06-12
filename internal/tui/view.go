@@ -31,9 +31,13 @@ var spinFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧"
 
 const barWidth = 20
 
-// logo는 홈 화면의 ASCII 워드마크다 (반각 블록 2행).
-const logo = `▄▀▀ █   ▄▀▄ █ █ █▀▄ ██▀   ▄▀▀ █   █ █ █ ▀█▀ ▄▀▀ █▄█
-▀▄▄ █▄▄ █▀█ ▀▄█ █▄▀ █▄▄   ▄██ ▀▄▀▄▀ █  █  ▀▄▄ █ █`
+// logoLines는 홈 화면의 ASCII 워드마크다 (figlet smslant).
+var logoLines = []string{
+	"      __             __                  _ __      __",
+	" ____/ /__ ___ _____/ /__ ________    __(_) /_____/ /",
+	"/ __/ / _ `/ // / _  / -_)___(_-< |/|/ / / __/ __/ _ \\",
+	"\\__/_/\\_,_/\\_,_/\\_,_/\\__/   /___/__,__/_/\\__/\\__/_//_/",
+}
 
 // filledCells는 사용률(0~1)을 채워진 칸 수로 변환한다. 범위 밖은 클램프.
 func filledCells(utilization float64, width int) int {
@@ -94,7 +98,7 @@ func (m *Model) View() tea.View {
 func (m *Model) viewHome() string {
 	var b strings.Builder
 	b.WriteString("\n")
-	for _, line := range strings.Split(logo, "\n") {
+	for _, line := range logoLines {
 		b.WriteString("  " + titleStyle.Render(line) + "\n")
 	}
 	b.WriteString("  " + dimStyle.Render("v"+m.version) + "\n\n")

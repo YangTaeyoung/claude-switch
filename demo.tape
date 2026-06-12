@@ -4,7 +4,8 @@ Output docs/demo.gif
 
 Set FontSize 16
 Set Width 900
-Set Height 620
+Set Height 340
+Set Padding 24
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 60ms
 
@@ -13,12 +14,12 @@ Env CLAUDE_SWITCH_DEMO "1"
 Type "claude-switch"
 Sleep 500ms
 Enter
-Sleep 2.5s
+Sleep 2s
+Enter
+Sleep 2.2s
 Down
-Sleep 1s
+Sleep 800ms
 Enter
 Sleep 1.8s
-Type "r"
-Sleep 2.5s
 Type "q"
 Sleep 500ms
