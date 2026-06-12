@@ -5,6 +5,7 @@
 **Hit your Claude Code usage limit? Switch to your next subscription account with one command.**
 
 [![CI](https://github.com/YangTaeyoung/claude-switch/actions/workflows/ci.yml/badge.svg)](https://github.com/YangTaeyoung/claude-switch/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/YangTaeyoung/claude-switch?logo=github)](https://github.com/YangTaeyoung/claude-switch/releases/latest)
 [![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![Platform](https://img.shields.io/badge/platform-macOS-black?logo=apple)](https://www.apple.com/macos/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -36,6 +37,8 @@ Active profile: personal
 - **🪶 Zero dependencies** — pure Go standard library. One small binary.
 
 ## 📦 Installation
+
+**Download a prebuilt binary** (universal macOS, arm64 + x86_64) from the [latest release](https://github.com/YangTaeyoung/claude-switch/releases/latest), or:
 
 ```shell
 go install github.com/YangTaeyoung/claude-switch@latest

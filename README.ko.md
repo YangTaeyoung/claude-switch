@@ -5,6 +5,7 @@
 **Claude Code 토큰 리밋이 찼다면? 명령 하나로 다음 구독 계정으로 전환하세요.**
 
 [![CI](https://github.com/YangTaeyoung/claude-switch/actions/workflows/ci.yml/badge.svg)](https://github.com/YangTaeyoung/claude-switch/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/YangTaeyoung/claude-switch?logo=github)](https://github.com/YangTaeyoung/claude-switch/releases/latest)
 [![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![Platform](https://img.shields.io/badge/platform-macOS-black?logo=apple)](https://www.apple.com/macos/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -36,6 +37,8 @@ Active profile: personal
 - **🪶 의존성 제로** — 순수 Go 표준 라이브러리. 작은 바이너리 하나.
 
 ## 📦 설치
+
+[최신 릴리즈](https://github.com/YangTaeyoung/claude-switch/releases/latest)에서 **빌드된 바이너리**(macOS 유니버설, arm64 + x86_64)를 받거나:
 
 ```shell
 go install github.com/YangTaeyoung/claude-switch@latest

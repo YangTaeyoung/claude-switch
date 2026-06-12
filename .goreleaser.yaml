@@ -1,0 +1,42 @@
+version: 2
+
+project_name: claude-switch
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+
+# amd64 + arm64를 하나의 macOS 유니버설 바이너리로 병합
+universal_binaries:
+  - replace: true
+
+archives:
+  - formats: ["tar.gz"]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^chore:"
+      - "^test:"
+
+release:
+  header: |
+    Switch between multiple Claude Code subscription accounts with one command.
+
+    **Install:** `go install github.com/YangTaeyoung/claude-switch@{{ .Tag }}` or download the universal macOS binary below.
