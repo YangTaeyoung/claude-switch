@@ -3,6 +3,7 @@ module github.com/YangTaeyoung/claude-switch
 go 1.25.0
 
 require (
+	charm.land/bubbles/v2 v2.1.0 // indirect
 	charm.land/bubbletea/v2 v2.0.7 // indirect
 	charm.land/lipgloss/v2 v2.0.3 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
