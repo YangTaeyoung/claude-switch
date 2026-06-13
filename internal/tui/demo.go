@@ -11,9 +11,10 @@ import (
 
 // demoBackend는 GIF 녹화·시연용 가짜 백엔드다. 실제 키체인·계정 정보를 일절 쓰지 않는다.
 type demoBackend struct {
-	profiles []Profile
-	active   string
-	lang     i18n.Lang
+	profiles   []Profile
+	active     string
+	lang       i18n.Lang
+	autoUpdate bool
 }
 
 func newDemoBackend() *demoBackend {
@@ -72,6 +73,13 @@ func (d *demoBackend) Language() i18n.Lang { return d.lang }
 
 func (d *demoBackend) SetLanguage(l i18n.Lang) error {
 	d.lang = l
+	return nil
+}
+
+func (d *demoBackend) AutoUpdate() bool { return d.autoUpdate }
+
+func (d *demoBackend) SetAutoUpdate(v bool) error {
+	d.autoUpdate = v
 	return nil
 }
 

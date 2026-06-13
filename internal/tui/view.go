@@ -101,7 +101,11 @@ func (m *Model) viewHome() string {
 	for _, line := range logoLines {
 		b.WriteString("  " + titleStyle.Render(line) + "\n")
 	}
-	b.WriteString("  " + dimStyle.Render("v"+m.version) + "\n\n")
+	b.WriteString("  " + dimStyle.Render("v"+m.version) + "\n")
+	if m.updateNotice != "" {
+		b.WriteString("  " + lipgloss.NewStyle().Foreground(colorAccent).Render(m.updateNotice) + "\n")
+	}
+	b.WriteString("\n")
 
 	if len(m.rows) == 0 {
 		b.WriteString("  " + lipgloss.NewStyle().Foreground(colorWarn).Render(i18n.T("home.noProfile")) + "\n\n")
@@ -185,6 +189,18 @@ func (m *Model) viewSettings() string {
 		}
 		b.WriteString("  " + cursor + check + label + "\n")
 	}
+
+	// 자동 업데이트 토글
+	b.WriteString("\n  " + dimStyle.Render(i18n.T("settings.autoUpdate")) + "\n")
+	cursor := "  "
+	state := dimStyle.Render(i18n.T("settings.off"))
+	if m.autoUpdate {
+		state = okStyle.Render(i18n.T("settings.on"))
+	}
+	if m.settingsCursor == len(languages) {
+		cursor = activeStyle.Render("▸ ")
+	}
+	b.WriteString("  " + cursor + "  " + state + "\n")
 
 	b.WriteString("\n" + m.statusLine())
 	b.WriteString("  " + dimStyle.Render(i18n.T("settings.help")) + "\n")

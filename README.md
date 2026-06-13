@@ -38,6 +38,7 @@ Active profile: personal
 
 - **🖥️ Interactive TUI** — run `claude-switch` with no arguments for a full-screen home menu: manage profiles (switch / rename / delete with live usage), save the current account, and tweak settings. Built on [Bubble Tea v2](https://github.com/charmbracelet/bubbletea).
 - **🌐 English / 한국어** — switch the display language in Settings or with `claude-switch lang ko`.
+- **🔔 Stay up to date** — the TUI checks GitHub for new releases (once a day, silently) and shows a notice. Run `claude-switch update` to self-update anytime, or enable **Auto-update on launch** in Settings to upgrade automatically.
 - **⚡ One-command switching** — `claude-switch next` cycles to your next registered account. No shell wrappers, no env vars, no re-login.
 - **📊 Live usage visibility** — `status` shows each account's real 5-hour / 7-day utilization and reset times, straight from Anthropic's `anthropic-ratelimit-unified-*` headers. Know *before* you switch which account has headroom.
 - **🔐 Keychain-native, zero plaintext** — credentials never touch disk. Profiles are stored as macOS Keychain items, exactly like Claude Code stores its own.
@@ -92,7 +93,20 @@ That's it. New `claude` sessions use the next account.
 | `claude-switch rename <old> <new>` | Rename a profile |
 | `claude-switch delete <name>` | Remove a profile (the active one is protected) |
 | `claude-switch lang <en\|ko>` | Set display language |
+| `claude-switch update` | Download and install the latest release |
 | `claude-switch version` | Print version |
+
+### Auto-update
+
+claude-switch checks for new releases on the [GitHub Releases](https://github.com/YangTaeyoung/claude-switch/releases) page. By default it only **notifies** you — the TUI shows a banner when a newer version exists (checked at most once every 24 hours, and never for `go install`-built dev binaries). Update on your own terms with `claude-switch update`.
+
+To upgrade automatically when the TUI launches, turn on **Auto-update on launch** in Settings, or set it directly in `~/.config/claude-switch/config.json`:
+
+```json
+{ "autoUpdate": true }
+```
+
+> The self-update replaces the running binary in place, so it needs write access to wherever claude-switch is installed (`go install` paths and direct downloads are fine). If you later install via a package manager, prefer leaving auto-update off and upgrading through the manager.
 
 ## ⚙️ How it works
 

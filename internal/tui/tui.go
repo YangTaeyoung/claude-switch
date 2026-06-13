@@ -15,6 +15,7 @@ import (
 	"github.com/YangTaeyoung/claude-switch/internal/app"
 	"github.com/YangTaeyoung/claude-switch/internal/i18n"
 	"github.com/YangTaeyoung/claude-switch/internal/limit"
+	"github.com/YangTaeyoung/claude-switch/internal/update"
 )
 
 // Profile은 TUI에 표시되는 프로필 한 줄이다.
@@ -33,6 +34,8 @@ type Backend interface {
 	Usage(ctx context.Context, name string) limit.Result
 	Language() i18n.Lang
 	SetLanguage(l i18n.Lang) error
+	AutoUpdate() bool
+	SetAutoUpdate(v bool) error
 }
 
 // screen은 TUI 화면 식별자다.
@@ -66,6 +69,13 @@ type Model struct {
 	backend Backend
 	version string
 
+	// autoUpdate가 true면 새 버전 감지 시 자동으로 self-update를 실행한다.
+	autoUpdate bool
+	// stampPath는 마지막 업데이트 확인 시각 기록 파일. 빈 값이면 확인을 건너뛴다(데모 등).
+	stampPath string
+	// updateNotice는 홈 화면에 표시할 업데이트 안내 문구다.
+	updateNotice string
+
 	screen         screen
 	rows           []row
 	active         string
@@ -98,11 +108,23 @@ type actionMsg struct {
 
 type tickMsg time.Time
 
+// updateCheckMsg는 백그라운드 버전 확인 결과다.
+type updateCheckMsg struct {
+	rel *update.Release
+	err error
+}
+
+// updateDoneMsg는 자동 self-update 완료 결과다.
+type updateDoneMsg struct {
+	tag string
+	err error
+}
+
 func NewModel(b Backend, version string) (*Model, error) {
 	i18n.SetLang(b.Language())
 	in := textinput.New()
 	in.CharLimit = 40
-	m := &Model{backend: b, version: version, input: in}
+	m := &Model{backend: b, version: version, input: in, autoUpdate: b.AutoUpdate()}
 	if err := m.reload(); err != nil {
 		return nil, err
 	}
@@ -167,7 +189,31 @@ func tick() tea.Cmd {
 	return tea.Tick(120*time.Millisecond, func(t time.Time) tea.Msg { return tickMsg(t) })
 }
 
-func (m *Model) Init() tea.Cmd { return nil }
+func (m *Model) Init() tea.Cmd { return m.checkUpdate() }
+
+// checkUpdate는 조건이 맞으면 백그라운드로 최신 릴리스를 조회하는 cmd를 만든다.
+// dev 빌드, 스탬프 미설정(데모), 또는 최근 확인(24h 이내)이면 아무것도 하지 않는다.
+func (m *Model) checkUpdate() tea.Cmd {
+	if m.version == "dev" || m.stampPath == "" || !update.ShouldCheck(m.stampPath) {
+		return nil
+	}
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		rel, err := update.Latest(ctx)
+		return updateCheckMsg{rel: rel, err: err}
+	}
+}
+
+// selfUpdate는 릴리스 바이너리를 내려받아 교체하는 cmd를 만든다.
+func (m *Model) selfUpdate(rel *update.Release) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+		err := update.SelfUpdate(ctx, rel)
+		return updateDoneMsg{tag: rel.TagName, err: err}
+	}
+}
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -227,6 +273,24 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tick()
 			}
 		}
+		return m, nil
+	case updateCheckMsg:
+		update.MarkChecked(m.stampPath, time.Now())
+		if msg.err != nil || msg.rel == nil || !update.IsNewer(m.version, msg.rel.TagName) {
+			return m, nil
+		}
+		if m.autoUpdate {
+			m.updateNotice = fmt.Sprintf(i18n.T("update.updating"), msg.rel.TagName)
+			return m, m.selfUpdate(msg.rel)
+		}
+		m.updateNotice = fmt.Sprintf(i18n.T("update.available"), msg.rel.TagName)
+		return m, nil
+	case updateDoneMsg:
+		if msg.err != nil {
+			m.updateNotice = msg.err.Error()
+			return m, nil
+		}
+		m.updateNotice = fmt.Sprintf(i18n.T("update.done"), msg.tag)
 		return m, nil
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -347,17 +411,32 @@ func (m *Model) handleSettingsKey(key string) tea.Cmd {
 			m.settingsCursor--
 		}
 	case "down", "j":
-		if m.settingsCursor < len(languages)-1 {
+		if m.settingsCursor < len(languages) { // 마지막 인덱스 = 자동 업데이트 토글
 			m.settingsCursor++
 		}
 	case "enter":
-		lang := languages[m.settingsCursor]
-		if err := m.backend.SetLanguage(lang); err != nil {
+		if m.settingsCursor < len(languages) {
+			lang := languages[m.settingsCursor]
+			if err := m.backend.SetLanguage(lang); err != nil {
+				m.status, m.statusErr = err.Error(), true
+				return nil
+			}
+			i18n.SetLang(lang)
+			m.status, m.statusErr = i18n.T("status.langSet"), false
+			return nil
+		}
+		// 자동 업데이트 토글 행
+		v := !m.autoUpdate
+		if err := m.backend.SetAutoUpdate(v); err != nil {
 			m.status, m.statusErr = err.Error(), true
 			return nil
 		}
-		i18n.SetLang(lang)
-		m.status, m.statusErr = i18n.T("status.langSet"), false
+		m.autoUpdate = v
+		if v {
+			m.status, m.statusErr = i18n.T("status.autoUpdateOn"), false
+		} else {
+			m.status, m.statusErr = i18n.T("status.autoUpdateOff"), false
+		}
 	case "esc":
 		m.status, m.statusErr = "", false
 		m.screen = screenHome
@@ -448,6 +527,23 @@ func (b appBackend) SetLanguage(l i18n.Lang) error {
 	return cfg.Save(b.a.ConfigPath)
 }
 
+func (b appBackend) AutoUpdate() bool {
+	cfg, err := b.a.Config()
+	if err != nil {
+		return false
+	}
+	return cfg.AutoUpdate
+}
+
+func (b appBackend) SetAutoUpdate(v bool) error {
+	cfg, err := b.a.Config()
+	if err != nil {
+		return err
+	}
+	cfg.AutoUpdate = v
+	return cfg.Save(b.a.ConfigPath)
+}
+
 // Run은 TUI를 시작한다. 데모 모드(CLAUDE_SWITCH_DEMO=1)면 가짜 데이터를 쓴다.
 func Run(a *app.App, version string) error {
 	a.Out, a.Errw = io.Discard, io.Discard
@@ -458,6 +554,10 @@ func Run(a *app.App, version string) error {
 	m, err := NewModel(b, version)
 	if err != nil {
 		return err
+	}
+	// 업데이트 확인은 실제 백엔드(데모 아님)에서만 활성화한다.
+	if _, ok := b.(appBackend); ok {
+		m.stampPath = update.StampPath(a.ConfigPath)
 	}
 	_, err = tea.NewProgram(m).Run()
 	return err

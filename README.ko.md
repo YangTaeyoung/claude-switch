@@ -38,6 +38,7 @@ Active profile: personal
 
 - **🖥️ 인터랙티브 TUI** — 인자 없이 `claude-switch`를 실행하면 풀스크린 홈 메뉴: 프로필 관리(전환·이름변경·삭제 + 실시간 사용량), 현재 계정 저장, 설정. [Bubble Tea v2](https://github.com/charmbracelet/bubbletea) 기반.
 - **🌐 English / 한국어** — 설정 화면 또는 `claude-switch lang ko`로 표시 언어 전환.
+- **🔔 항상 최신 버전** — TUI가 하루 한 번 조용히 GitHub 릴리즈를 확인해 새 버전이 있으면 알려줍니다. 언제든 `claude-switch update`로 직접 업데이트하거나, 설정에서 **시작 시 자동 업데이트**를 켜면 자동으로 최신 버전으로 올라갑니다.
 - **⚡ 명령 하나로 전환** — `claude-switch next` 한 번이면 다음 등록 계정으로 순환. 셸 래퍼도, 환경변수도, 재로그인도 필요 없습니다.
 - **📊 계정별 사용량 한눈에** — `status`가 Anthropic의 `anthropic-ratelimit-unified-*` 헤더에서 읽어온 **실제 5시간/7일 사용률과 리셋 시각**을 계정별로 보여줍니다. 어느 계정에 여유가 있는지 전환 *전에* 알 수 있습니다.
 - **🔐 키체인 네이티브, 평문 저장 없음** — 자격증명은 디스크에 닿지 않습니다. 프로필은 Claude Code 자체 방식과 동일하게 macOS 키체인 항목으로 저장됩니다.
@@ -92,7 +93,20 @@ claude-switch next
 | `claude-switch rename <old> <new>` | 프로필 이름 변경 |
 | `claude-switch delete <name>` | 프로필 삭제 (활성 프로필은 보호) |
 | `claude-switch lang <en\|ko>` | 표시 언어 설정 |
+| `claude-switch update` | 최신 릴리즈를 내려받아 설치 |
 | `claude-switch version` | 버전 출력 |
+
+### 자동 업데이트
+
+claude-switch는 [GitHub 릴리즈](https://github.com/YangTaeyoung/claude-switch/releases)에서 새 버전을 확인합니다. 기본값은 **알림만** — 새 버전이 있으면 TUI에 배너가 뜹니다(최대 24시간에 한 번 확인하며, `go install`로 빌드한 dev 바이너리에서는 확인하지 않습니다). 업데이트 시점은 `claude-switch update`로 직접 정하세요.
+
+TUI 시작 시 자동으로 올리려면 설정에서 **시작 시 자동 업데이트**를 켜거나, `~/.config/claude-switch/config.json`에 직접 설정하세요:
+
+```json
+{ "autoUpdate": true }
+```
+
+> 자가 업데이트는 실행 중인 바이너리를 제자리에서 교체하므로, 설치된 위치에 쓰기 권한이 필요합니다(`go install` 경로와 직접 다운로드는 문제없음). 추후 패키지 매니저로 설치한다면 자동 업데이트는 끄고 매니저로 업그레이드하는 것을 권장합니다.
 
 ## ⚙️ 동작 원리
 

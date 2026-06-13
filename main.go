@@ -12,6 +12,7 @@ import (
 	"github.com/YangTaeyoung/claude-switch/internal/i18n"
 	"github.com/YangTaeyoung/claude-switch/internal/limit"
 	"github.com/YangTaeyoung/claude-switch/internal/tui"
+	"github.com/YangTaeyoung/claude-switch/internal/update"
 )
 
 // version은 빌드 시 GoReleaser ldflags로 주입된다.
@@ -59,6 +60,8 @@ func run(args []string) error {
 			return fmt.Errorf("lang requires one of: en, ko")
 		}
 		return setLang(i18n.Lang(rest[0]))
+	case "update":
+		return runUpdate()
 	}
 
 	a, err := app.New()
@@ -113,6 +116,30 @@ func initLang() {
 		return
 	}
 	i18n.SetLang(i18n.Lang(cfg.Language))
+}
+
+// runUpdate는 최신 릴리스를 확인하고, 새 버전이 있으면 바이너리를 자가 교체한다.
+func runUpdate() error {
+	if version == "dev" {
+		fmt.Print(i18n.T("cli.update.dev"))
+		return nil
+	}
+	fmt.Print(i18n.T("cli.update.checking"))
+	ctx := context.Background()
+	rel, err := update.Latest(ctx)
+	if err != nil {
+		return err
+	}
+	if !update.IsNewer(version, rel.TagName) {
+		fmt.Printf(i18n.T("cli.update.latest"), version)
+		return nil
+	}
+	fmt.Printf(i18n.T("cli.update.found"), version, rel.TagName)
+	if err := update.SelfUpdate(ctx, rel); err != nil {
+		return err
+	}
+	fmt.Printf(i18n.T("cli.update.done"), rel.TagName)
+	return nil
 }
 
 // setLang은 표시 언어를 config에 저장한다.

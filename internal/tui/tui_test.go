@@ -11,13 +11,14 @@ import (
 
 // fakeBackend는 테스트용 인메모리 백엔드. 모든 값은 가짜다.
 type fakeBackend struct {
-	profiles []Profile
-	active   string
-	lang     i18n.Lang
-	switched []string
-	saved    []string
-	renamed  [][2]string
-	deleted  []string
+	profiles   []Profile
+	active     string
+	lang       i18n.Lang
+	switched   []string
+	saved      []string
+	renamed    [][2]string
+	deleted    []string
+	autoUpdate bool
 }
 
 func (f *fakeBackend) Profiles() ([]Profile, string, error) { return f.profiles, f.active, nil }
@@ -61,6 +62,13 @@ func (f *fakeBackend) Language() i18n.Lang { return f.lang }
 
 func (f *fakeBackend) SetLanguage(l i18n.Lang) error {
 	f.lang = l
+	return nil
+}
+
+func (f *fakeBackend) AutoUpdate() bool { return f.autoUpdate }
+
+func (f *fakeBackend) SetAutoUpdate(v bool) error {
+	f.autoUpdate = v
 	return nil
 }
 
@@ -228,6 +236,29 @@ func TestSettingsLanguageSwitch(t *testing.T) {
 	m.handleKey("esc")
 	if m.screen != screenHome {
 		t.Fatal("esc로 home 복귀")
+	}
+}
+
+func TestSettingsAutoUpdateToggle(t *testing.T) {
+	m, b := newTestModel(t)
+	m.menuCursor = menuSettings
+	m.handleKey("enter")
+
+	// 언어 2개 아래 = 자동 업데이트 토글 행
+	m.handleKey("down") // 한국어
+	m.handleKey("down") // 자동 업데이트
+	if m.settingsCursor != len(languages) {
+		t.Fatalf("토글 행 커서 = %d, want %d", m.settingsCursor, len(languages))
+	}
+
+	m.handleKey("enter") // 켜기
+	if !b.autoUpdate || !m.autoUpdate {
+		t.Fatalf("토글 후 autoUpdate backend=%v model=%v", b.autoUpdate, m.autoUpdate)
+	}
+
+	m.handleKey("enter") // 끄기
+	if b.autoUpdate || m.autoUpdate {
+		t.Fatalf("재토글 후 autoUpdate backend=%v model=%v", b.autoUpdate, m.autoUpdate)
 	}
 }
 

@@ -24,6 +24,9 @@ type Config struct {
 	Active string `json:"active,omitempty"`
 	// Language는 표시 언어 ("en"/"ko"). 빈 값은 en.
 	Language string `json:"language,omitempty"`
+	// AutoUpdate가 true면 TUI 시작 시 새 버전을 자동으로 내려받아 교체한다.
+	// false(기본)면 새 버전이 있어도 알림만 표시한다.
+	AutoUpdate bool `json:"autoUpdate,omitempty"`
 	// ClaudeKeychainAcct는 Claude Code 키체인 항목의 account 속성(보통 macOS 사용자명).
 	ClaudeKeychainAcct string    `json:"claudeKeychainAccount,omitempty"`
 	Profiles           []Profile `json:"profiles"`
