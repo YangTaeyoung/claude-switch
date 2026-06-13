@@ -7,18 +7,24 @@ builds:
       - CGO_ENABLED=0
     goos:
       - darwin
+      - linux
+      - windows
     goarch:
       - amd64
       - arm64
     ldflags:
       - -s -w -X main.version={{.Version}}
 
-# amd64 + arm64를 하나의 macOS 유니버설 바이너리로 병합
+# macOS의 amd64 + arm64만 하나의 유니버설 바이너리로 병합 (linux/windows는 아키텍처별 유지)
 universal_binaries:
   - replace: true
 
 archives:
   - formats: ["tar.gz"]
+    # Windows는 zip이 관례 (self-update의 update.archiveExt와 일치해야 함)
+    format_overrides:
+      - goos: windows
+        formats: ["zip"]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - LICENSE
@@ -39,4 +45,4 @@ release:
   header: |
     Switch between multiple Claude Code subscription accounts with one command.
 
-    **Install:** `go install github.com/YangTaeyoung/claude-switch@{{ .Tag }}` or download the universal macOS binary below.
+    **Install:** `go install github.com/YangTaeyoung/claude-switch@{{ .Tag }}` or download the binary for your OS below (macOS / Linux / Windows).

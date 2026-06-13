@@ -7,7 +7,7 @@
 [![CI](https://github.com/YangTaeyoung/claude-switch/actions/workflows/ci.yml/badge.svg)](https://github.com/YangTaeyoung/claude-switch/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/YangTaeyoung/claude-switch?logo=github)](https://github.com/YangTaeyoung/claude-switch/releases/latest)
 [![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
-[![Platform](https://img.shields.io/badge/platform-macOS-black?logo=apple)](https://www.apple.com/macos/)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-black)](https://github.com/YangTaeyoung/claude-switch/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 [English](README.md) · [한국어](README.ko.md)
@@ -41,13 +41,13 @@ Active profile: personal
 - **🔔 Stay up to date** — the TUI checks GitHub for new releases (once a day, silently) and shows a notice. Run `claude-switch update` to self-update anytime, or enable **Auto-update on launch** in Settings to upgrade automatically.
 - **⚡ One-command switching** — `claude-switch next` cycles to your next registered account. No shell wrappers, no env vars, no re-login.
 - **📊 Live usage visibility** — `status` shows each account's real 5-hour / 7-day utilization and reset times, straight from Anthropic's `anthropic-ratelimit-unified-*` headers. Know *before* you switch which account has headroom.
-- **🔐 Keychain-native, zero plaintext** — credentials never touch disk. Profiles are stored as macOS Keychain items, exactly like Claude Code stores its own.
+- **🔐 Stored the same way Claude Code stores its own** — on macOS, profiles live in the Keychain (zero plaintext); on Linux/Windows, in `0600` files alongside Claude Code's own `.credentials.json`. claude-switch mirrors whatever your OS uses.
 - **🔁 Token-rotation safe** — Claude Code rotates refresh tokens while you work. claude-switch *syncs back* the live credentials into the active profile before every switch, so a profile you saved last week still works today.
 - **🪶 Minimal dependencies** — Go standard library + the Charm stack (Bubble Tea v2, Lip Gloss v2). One small binary.
 
 ## 📦 Installation
 
-**Download a prebuilt binary** (universal macOS, arm64 + x86_64) from the [latest release](https://github.com/YangTaeyoung/claude-switch/releases/latest), or:
+**Download a prebuilt binary** for macOS (universal), Linux (amd64/arm64), or Windows (amd64/arm64) from the [latest release](https://github.com/YangTaeyoung/claude-switch/releases/latest), or:
 
 ```shell
 go install github.com/YangTaeyoung/claude-switch@latest
@@ -110,11 +110,11 @@ To upgrade automatically when the TUI launches, turn on **Auto-update on launch*
 
 ## ⚙️ How it works
 
-On macOS, Claude Code stores its OAuth credentials in the Keychain item `Claude Code-credentials` ([official docs](https://code.claude.com/docs/en/authentication)). claude-switch swaps that item per profile:
+Claude Code stores its OAuth credentials wherever your OS keeps secrets ([official docs](https://code.claude.com/docs/en/authentication)): the **Keychain item** `Claude Code-credentials` on macOS, or the file `~/.claude/.credentials.json` (mode `0600`) on Linux/Windows. claude-switch swaps that credential per profile, using the matching mechanism for your OS:
 
 ```mermaid
 flowchart LR
-    subgraph Keychain["🔐 macOS Keychain"]
+    subgraph Store["🔐 Credential store (Keychain on macOS · 0600 files on Linux/Windows)"]
         CC["Claude Code-credentials<br/>(live)"]
         P1["profile: work"]
         P2["profile: personal"]
@@ -133,10 +133,10 @@ Only non-secret metadata (profile names, order, emails) lives in `~/.config/clau
 
 ## ⚠️ Limitations
 
-- **macOS only.** Linux/Windows store credentials in `.credentials.json`; not supported (yet).
+- **Cross-platform.** macOS uses the Keychain; Linux/Windows read and write Claude Code's own `~/.claude/.credentials.json` (`0600`). On Linux/Windows credentials are stored as plaintext files — exactly as Claude Code itself stores them — so they are only as protected as your user account's file permissions.
 - **Running sessions keep their old account** until restarted — switching applies to new `claude` sessions.
 - **`status` sends one minimal inference request per profile** (1 haiku token) — free endpoints don't return rate-limit headers (verified empirically). The cost is negligible but not zero.
-- First Keychain access may trigger a macOS permission prompt — choose "Always Allow".
+- On macOS, the first Keychain access may trigger a permission prompt — choose "Always Allow".
 
 ## 📄 License
 

@@ -5,6 +5,8 @@ package update
 
 import (
 	"archive/tar"
+	"archive/zip"
+	"bytes"
 	"compress/gzip"
 	"context"
 	"encoding/json"
@@ -110,17 +112,27 @@ func parseSemver(v string) ([3]int, bool) {
 	return out, true
 }
 
-// tarball은 현재 OS에 맞는 tar.gz 에셋을 찾는다.
+// archiveExt는 현재 OS의 릴리스 아카이브 확장자다.
+// GoReleaser 관례상 Windows는 zip, 그 외는 tar.gz를 쓴다.
+func archiveExt() string {
+	if runtime.GOOS == "windows" {
+		return ".zip"
+	}
+	return ".tar.gz"
+}
+
+// asset은 현재 OS에 맞는 릴리스 아카이브를 찾는다.
 // GoReleaser 유니버설 바이너리(darwin_all)와 일반 에셋을 모두 처리한다.
-func (r *Release) tarball() (Asset, bool) {
+func (r *Release) asset() (Asset, bool) {
+	ext := archiveExt()
 	// 유니버설 바이너리(darwin_all) 우선.
 	for _, a := range r.Assets {
-		if strings.HasSuffix(a.Name, "_"+runtime.GOOS+"_all.tar.gz") {
+		if strings.HasSuffix(a.Name, "_"+runtime.GOOS+"_all"+ext) {
 			return a, true
 		}
 	}
 	for _, a := range r.Assets {
-		if strings.Contains(a.Name, runtime.GOOS) && strings.HasSuffix(a.Name, ".tar.gz") {
+		if strings.Contains(a.Name, runtime.GOOS) && strings.HasSuffix(a.Name, ext) {
 			return a, true
 		}
 	}
@@ -130,7 +142,7 @@ func (r *Release) tarball() (Asset, bool) {
 // SelfUpdate는 릴리스의 tar.gz 에셋을 내려받아 현재 실행 바이너리를 교체한다.
 // 교체 실패 시 selfupdate가 이전 바이너리로 롤백을 시도한다.
 func SelfUpdate(ctx context.Context, rel *Release) error {
-	asset, ok := rel.tarball()
+	asset, ok := rel.asset()
 	if !ok {
 		return fmt.Errorf("no compatible release asset for %s", runtime.GOOS)
 	}
@@ -148,7 +160,11 @@ func SelfUpdate(ctx context.Context, rel *Release) error {
 		return fmt.Errorf("download failed: HTTP %d", resp.StatusCode)
 	}
 
-	bin, err := extractBinary(resp.Body, "claude-switch")
+	name := "claude-switch"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	bin, err := extractBinary(resp.Body, name)
 	if err != nil {
 		return err
 	}
@@ -162,8 +178,17 @@ func SelfUpdate(ctx context.Context, rel *Release) error {
 	return nil
 }
 
-// extractBinary는 gzip+tar 스트림에서 지정 이름의 파일을 찾아 Reader로 돌려준다.
+// extractBinary는 릴리스 아카이브에서 지정 이름의 파일을 찾아 Reader로 돌려준다.
+// Windows(zip)와 그 외(tar.gz) 포맷을 모두 처리한다.
 func extractBinary(r io.Reader, name string) (io.Reader, error) {
+	if runtime.GOOS == "windows" {
+		return extractFromZip(r, name)
+	}
+	return extractFromTarGz(r, name)
+}
+
+// extractFromTarGz는 gzip+tar 스트림에서 지정 이름의 파일을 찾아 Reader로 돌려준다.
+func extractFromTarGz(r io.Reader, name string) (io.Reader, error) {
 	gz, err := gzip.NewReader(r)
 	if err != nil {
 		return nil, err
@@ -181,6 +206,35 @@ func extractBinary(r io.Reader, name string) (io.Reader, error) {
 			return tr, nil
 		}
 	}
+}
+
+// extractFromZip은 zip 아카이브에서 지정 이름의 파일을 찾아 Reader로 돌려준다.
+// zip은 임의 접근이 필요하므로 전체를 메모리로 읽는다(바이너리는 수 MB 수준).
+func extractFromZip(r io.Reader, name string) (io.Reader, error) {
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return nil, err
+	}
+	for _, zf := range zr.File {
+		if filepath.Base(zf.Name) != name {
+			continue
+		}
+		rc, err := zf.Open()
+		if err != nil {
+			return nil, err
+		}
+		content, err := io.ReadAll(rc)
+		rc.Close()
+		if err != nil {
+			return nil, err
+		}
+		return bytes.NewReader(content), nil
+	}
+	return nil, fmt.Errorf("binary %q not found in archive", name)
 }
 
 // ShouldCheck는 마지막 확인으로부터 checkInterval이 지났는지 반환한다.

@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"runtime"
 
 	"github.com/YangTaeyoung/claude-switch/internal/claudejson"
 	"github.com/YangTaeyoung/claude-switch/internal/config"
@@ -43,12 +44,35 @@ func New() (*App, error) {
 		return nil, err
 	}
 	return &App{
-		KC:             keychain.SecurityCLI{},
+		KC:             newKeychain(home, cfgPath),
 		ConfigPath:     cfgPath,
 		ClaudeJSONPath: filepath.Join(home, ".claude.json"),
 		Out:            os.Stdout,
 		Errw:           os.Stderr,
 	}, nil
+}
+
+// newKeychain은 OS에 맞는 자격증명 저장소를 고른다.
+// macOS는 Keychain(security CLI), Linux/Windows는 Claude Code와 동일하게
+// ~/.claude/.credentials.json 평문 파일을 직접 다룬다.
+func newKeychain(home, cfgPath string) keychain.Keychain {
+	if runtime.GOOS == "darwin" {
+		return keychain.SecurityCLI{}
+	}
+	return keychain.FileStore{
+		ClaudeService:  ClaudeService,
+		ClaudeCredPath: claudeCredPath(home),
+		BaseDir:        filepath.Join(filepath.Dir(cfgPath), "credentials"),
+	}
+}
+
+// claudeCredPath는 Linux/Windows에서 Claude Code 자격증명 파일 경로를 반환한다.
+// CLAUDE_CONFIG_DIR이 설정되어 있으면 그 디렉토리를 우선한다(Claude Code 공식 동작).
+func claudeCredPath(home string) string {
+	if dir := os.Getenv("CLAUDE_CONFIG_DIR"); dir != "" {
+		return filepath.Join(dir, ".credentials.json")
+	}
+	return filepath.Join(home, ".claude", ".credentials.json")
 }
 
 // Save는 현재 키체인 자격증명을 프로필로 저장하고 활성 프로필로 표시한다.

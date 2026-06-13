@@ -2,6 +2,7 @@ package update
 
 import (
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -65,13 +66,38 @@ func TestShouldCheck(t *testing.T) {
 	}
 }
 
-func TestTarballSelection(t *testing.T) {
+func TestAssetSelection(t *testing.T) {
 	rel := &Release{Assets: []Asset{
-		{Name: "claude-switch_1.2.0_darwin_all.tar.gz", URL: "u1"},
-		{Name: "checksums.txt", URL: "u2"},
+		{Name: "claude-switch_1.2.0_darwin_all.tar.gz", URL: "darwin"},
+		{Name: "claude-switch_1.2.0_linux_amd64.tar.gz", URL: "linux-amd64"},
+		{Name: "claude-switch_1.2.0_linux_arm64.tar.gz", URL: "linux-arm64"},
+		{Name: "claude-switch_1.2.0_windows_amd64.zip", URL: "windows"},
+		{Name: "checksums.txt", URL: "checksums"},
 	}}
-	a, ok := rel.tarball()
-	if !ok || a.URL != "u1" {
-		t.Errorf("tarball() = %+v, %v; want darwin_all asset", a, ok)
+
+	a, ok := rel.asset()
+	if !ok {
+		t.Fatalf("asset() found nothing for %s", runtime.GOOS)
+	}
+	switch runtime.GOOS {
+	case "darwin":
+		if a.URL != "darwin" {
+			t.Errorf("darwin: got %q, want universal asset", a.URL)
+		}
+	case "windows":
+		if a.URL != "windows" {
+			t.Errorf("windows: got %q, want zip asset", a.URL)
+		}
+	case "linux":
+		// linux는 GOARCH에 따라 amd64/arm64 중 하나를 고른다.
+		if a.URL != "linux-amd64" && a.URL != "linux-arm64" {
+			t.Errorf("linux: got %q, want a linux tar.gz", a.URL)
+		}
+	}
+
+	// 호환 에셋이 없으면 false.
+	empty := &Release{Assets: []Asset{{Name: "checksums.txt", URL: "x"}}}
+	if _, ok := empty.asset(); ok {
+		t.Error("asset() should return false when no compatible asset exists")
 	}
 }

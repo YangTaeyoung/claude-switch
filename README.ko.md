@@ -7,7 +7,7 @@
 [![CI](https://github.com/YangTaeyoung/claude-switch/actions/workflows/ci.yml/badge.svg)](https://github.com/YangTaeyoung/claude-switch/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/YangTaeyoung/claude-switch?logo=github)](https://github.com/YangTaeyoung/claude-switch/releases/latest)
 [![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
-[![Platform](https://img.shields.io/badge/platform-macOS-black?logo=apple)](https://www.apple.com/macos/)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-black)](https://github.com/YangTaeyoung/claude-switch/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 [English](README.md) · [한국어](README.ko.md)
@@ -41,13 +41,13 @@ Active profile: personal
 - **🔔 항상 최신 버전** — TUI가 하루 한 번 조용히 GitHub 릴리즈를 확인해 새 버전이 있으면 알려줍니다. 언제든 `claude-switch update`로 직접 업데이트하거나, 설정에서 **시작 시 자동 업데이트**를 켜면 자동으로 최신 버전으로 올라갑니다.
 - **⚡ 명령 하나로 전환** — `claude-switch next` 한 번이면 다음 등록 계정으로 순환. 셸 래퍼도, 환경변수도, 재로그인도 필요 없습니다.
 - **📊 계정별 사용량 한눈에** — `status`가 Anthropic의 `anthropic-ratelimit-unified-*` 헤더에서 읽어온 **실제 5시간/7일 사용률과 리셋 시각**을 계정별로 보여줍니다. 어느 계정에 여유가 있는지 전환 *전에* 알 수 있습니다.
-- **🔐 키체인 네이티브, 평문 저장 없음** — 자격증명은 디스크에 닿지 않습니다. 프로필은 Claude Code 자체 방식과 동일하게 macOS 키체인 항목으로 저장됩니다.
+- **🔐 Claude Code와 동일한 방식으로 저장** — macOS에서는 키체인(평문 저장 없음), Linux/Windows에서는 Claude Code 자체의 `.credentials.json` 옆에 `0600` 권한 파일로 저장합니다. OS가 쓰는 방식을 그대로 따릅니다.
 - **🔁 토큰 회전 대응** — Claude Code는 사용 중 refresh token을 회전시킵니다. claude-switch는 전환 직전 살아있는 자격증명을 활성 프로필에 *sync-back* 하므로, 지난주에 저장한 프로필도 오늘 그대로 동작합니다.
 - **🪶 최소 의존성** — Go 표준 라이브러리 + Charm 스택(Bubble Tea v2, Lip Gloss v2). 작은 바이너리 하나.
 
 ## 📦 설치
 
-[최신 릴리즈](https://github.com/YangTaeyoung/claude-switch/releases/latest)에서 **빌드된 바이너리**(macOS 유니버설, arm64 + x86_64)를 받거나:
+[최신 릴리즈](https://github.com/YangTaeyoung/claude-switch/releases/latest)에서 **빌드된 바이너리**(macOS 유니버설, Linux amd64/arm64, Windows amd64/arm64)를 받거나:
 
 ```shell
 go install github.com/YangTaeyoung/claude-switch@latest
@@ -110,11 +110,11 @@ TUI 시작 시 자동으로 올리려면 설정에서 **시작 시 자동 업데
 
 ## ⚙️ 동작 원리
 
-macOS에서 Claude Code는 OAuth 자격증명을 키체인 항목 `Claude Code-credentials`에 저장합니다 ([공식 문서](https://code.claude.com/docs/en/authentication)). claude-switch는 이 항목을 프로필 단위로 교체합니다:
+Claude Code는 OS가 비밀값을 보관하는 곳에 OAuth 자격증명을 저장합니다 ([공식 문서](https://code.claude.com/docs/en/authentication)). macOS에서는 **키체인 항목** `Claude Code-credentials`, Linux/Windows에서는 파일 `~/.claude/.credentials.json`(권한 `0600`)입니다. claude-switch는 OS에 맞는 방식으로 이 자격증명을 프로필 단위로 교체합니다:
 
 ```mermaid
 flowchart LR
-    subgraph Keychain["🔐 macOS 키체인"]
+    subgraph Store["🔐 자격증명 저장소 (macOS는 키체인 · Linux/Windows는 0600 파일)"]
         CC["Claude Code-credentials<br/>(라이브)"]
         P1["profile: work"]
         P2["profile: personal"]
@@ -133,10 +133,10 @@ flowchart LR
 
 ## ⚠️ 한계
 
-- **macOS 전용.** Linux/Windows는 자격증명을 `.credentials.json`에 저장하므로 (아직) 지원하지 않습니다.
+- **크로스 플랫폼.** macOS는 키체인을, Linux/Windows는 Claude Code 자체의 `~/.claude/.credentials.json`(`0600`)을 직접 읽고 씁니다. Linux/Windows에서는 자격증명이 평문 파일로 저장되며 — Claude Code 자체와 동일한 방식 — 사용자 계정의 파일 권한 수준만큼만 보호됩니다.
 - **실행 중인 세션은 기존 계정 유지** — 전환은 새 `claude` 세션부터 적용됩니다.
 - **`status`는 프로필당 최소 inference 요청 1회를 보냅니다** (haiku 1토큰) — 무과금 엔드포인트는 리밋 헤더를 반환하지 않는 것을 실측으로 확인했습니다. 비용은 극미하지만 0은 아닙니다.
-- 첫 키체인 접근 시 macOS 허용 프롬프트가 뜰 수 있습니다 — "항상 허용"을 선택하세요.
+- macOS에서는 첫 키체인 접근 시 허용 프롬프트가 뜰 수 있습니다 — "항상 허용"을 선택하세요.
 
 ## 📄 라이선스
 
